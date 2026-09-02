@@ -68,6 +68,7 @@
   select { width:100%; padding:11px 12px; border:1.5px solid #ccc; border-radius:8px; font-size:15px; font-family:inherit; direction:rtl; background:#fafafa; }
   select:focus { outline:none; border-color:#1D9E75; background:#fff; }
   select.invalid { border-color:#c0392b; }
+  select option:disabled { color:#bbb; }
   .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   .declare { display:flex; gap:9px; align-items:flex-start; background:#f8f9fa; border:1px solid #e5e5e5; border-radius:9px; padding:12px 13px; margin:4px 0 14px; font-size:13px; color:#444; font-weight:400; line-height:1.5; cursor:pointer; }
   .declare input { width:18px; height:18px; flex-shrink:0; margin-top:1px; accent-color:#1D9E75; cursor:pointer; }
@@ -339,6 +340,25 @@ setInterval(updateDeadline, 30000);
   }
 })();
 
+// דירות שכבר הצביעו יורדות מהבחירה (מסומנות ולא ניתנות לבחירה)
+function markVotedApts(votedSet){
+  const sel = document.getElementById('f_apt');
+  let currentInvalid = false;
+  Array.from(sel.options).forEach(o => {
+    const n = parseInt(o.value);
+    if (isNaN(n)) return;
+    if (votedSet.has(n)) {
+      o.disabled = true;
+      o.textContent = 'דירה ' + n + ' — כבר הצביעה';
+      if (sel.value === o.value) currentInvalid = true;
+    } else {
+      o.disabled = false;
+      o.textContent = 'דירה ' + n;
+    }
+  });
+  if (currentInvalid) sel.value = '';  // אם הדירה שנבחרה הצביעה בינתיים
+}
+
 let selectedChoice = null;
 function selectChoice(v, el) {
   selectedChoice = v;
@@ -420,6 +440,7 @@ function loadProgress(){
         c.className = 'apt-cell ' + (aptMap[i] === 'בעד' ? 'apt-yes' : aptMap[i] === 'נגד' ? 'apt-no' : 'apt-off');
         c.textContent = i; grid.appendChild(c);
       }
+      markVotedApts(new Set(voted));
     })
     .catch(() => { document.getElementById('progLabel').textContent = ''; });
 }
