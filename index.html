@@ -245,6 +245,11 @@
       </div>
     </div>
 
+    <div class="field">
+      <label>טלפון <span class="req">*</span></label>
+      <input id="f_phone" type="tel" inputmode="tel" placeholder="05X-XXXXXXX" autocomplete="tel" />
+    </div>
+
     <label class="declare">
       <input type="checkbox" id="f_declare" />
       <span>אני מצהיר/ה כי אני בעל/ת הדירה או מוסמך/ת להצביע בשמה, וההצבעה נעשית על דעתי.</span>
@@ -252,7 +257,7 @@
 
     <div id="formErr" class="err"></div>
     <button class="btn" id="submitBtn">שליחת הצבעה ✓</button>
-    <p class="privacy">🔒 נאספים רק מספר דירה, שם והבחירה — לצורך תיעוד ההצבעה בלבד. הפרטים נשמרים אצל נציגות הבניין ולא מועברים לגורם אחר.</p>
+    <p class="privacy">🔒 נאספים רק מספר דירה, שם, טלפון והבחירה — לצורך תיעוד ההצבעה בלבד. הפרטים נשמרים אצל נציגות הבניין ולא מועברים לגורם אחר.</p>
     <div class="loading" id="loading">שולח… אנא המתן</div>
   </div>
 
@@ -284,7 +289,7 @@
 // ═══ הגדרות ═══
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxn7f1-PycwsK8oh9uElLX_L6pe_bCwP7cg64k5YM97ybZ0GTssn3p5ziJX-vb47yVW/exec';
 const FORM_KEY   = 'שדרוגים';
-const FIELDS     = ['apt','name','choice'];
+const FIELDS     = ['apt','name','phone','choice'];
 const TOTAL      = 52;
 const DEADLINE   = new Date('2026-09-05T23:59:59+03:00'); // שבת 5.9.26, שעון ישראל
 // ══════════════
@@ -336,7 +341,7 @@ document.getElementById('submitBtn').addEventListener('click', function(){
     values[f] = el ? el.value.trim() : '';
   }
   if (!selectedChoice) { showErr('יש לבחור בעד או נגד'); return; }
-  for (const f of ['apt','name']) {
+  for (const f of ['apt','name','phone']) {
     const el = document.getElementById('f_' + f);
     if (!values[f]) { showErr('יש למלא את כל השדות המסומנים ב-*'); if(el) el.classList.add('invalid'); return; }
     if (el) el.classList.remove('invalid');
