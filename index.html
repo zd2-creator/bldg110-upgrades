@@ -8,11 +8,11 @@
 <meta property="og:url" content="https://zd2-creator.github.io/bldg110-upgrades/">
 <meta property="og:site_name" content="ועד בית · בניין 110">
 <meta property="og:title" content="🗳️ הצבעת שדרוגים · בניין 110">
-<meta property="og:description" content="ההצבעה פתוחה עד שבת 5.9.26 בשעה 23:59 🙏">
+<meta property="og:description" content="ההצבעה פתוחה עד יום ראשון 6.9.26 בשעה 23:59 🙏">
 <meta property="og:locale" content="he_IL">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="🗳️ הצבעת שדרוגים · בניין 110">
-<meta name="twitter:description" content="ההצבעה פתוחה עד שבת 5.9.26 בשעה 23:59 🙏">
+<meta name="twitter:description" content="ההצבעה פתוחה עד יום ראשון 6.9.26 בשעה 23:59 🙏">
 <meta name="theme-color" content="#1D9E75">
 <style>
   * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
@@ -131,14 +131,14 @@
   </div>
 
   <div class="deadline" id="deadlineBox">
-    ⏳ ההצבעה פתוחה עד שבת 5.9.26 בשעה 23:59
+    <span id="deadlineText">⏳ ההצבעה פתוחה עד יום ראשון 6.9.26 בשעה 23:59</span>
     <span class="cd" id="countdown"></span>
   </div>
 
   <div class="card closed" id="closedCard" style="display:none">
     <div class="big">⏰</div>
     <h2>ההצבעה הסתיימה</h2>
-    <p>המועד האחרון להצבעה היה <b>שבת 5.9.26 בשעה 23:59</b>.</p>
+    <p>המועד האחרון להצבעה היה <b>יום ראשון 6.9.26 בשעה 23:59</b>.</p>
     <p>לא ניתן להצביע יותר. תודה לכל מי שהשתתף 🙏</p>
     <p>התוצאות מוצגות למטה.</p>
   </div>
@@ -289,21 +289,38 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxn7f1-PycwsK8oh9uEl
 const FORM_KEY   = 'שדרוגים';
 const FIELDS     = ['apt','name','phone','choice'];
 const TOTAL      = 52;
-const DEADLINE   = new Date('2026-09-05T23:59:59+03:00'); // שבת 5.9.26, שעון ישראל
+const DEADLINE   = new Date('2026-09-06T23:59:59+03:00'); // יום ראשון 6.9.26, שעון ישראל
 // ══════════════
 
 // ── דדליין: טיימר + נעילת הטופס אחרי המועד ──
+let DEADLINE_OVERRIDE = null; // מתעדכן מהשרת
+function effectiveDeadline(){ return DEADLINE_OVERRIDE || DEADLINE; }
 function pad2(n){ return n < 10 ? '0' + n : n; }
 function updateDeadline() {
   const now = new Date();
-  if (now > DEADLINE) {
+  const dl = effectiveDeadline();
+  if (dl === 'open') {  // ההצבעה נפתחה ללא הגבלת זמן
+    document.getElementById('formCard').style.display = '';
+    document.getElementById('closedCard').style.display = 'none';
+    document.getElementById('deadlineBox').style.display = 'none';
+    return;
+  }
+  if (dl === 'closed' || now > dl) {
     document.getElementById('formCard').style.display = 'none';
     document.getElementById('deadlineBox').style.display = 'none';
     document.getElementById('closedCard').style.display = 'block';
     return;
   }
-  const ms = DEADLINE - now;
+  document.getElementById('deadlineBox').style.display = '';
+  document.getElementById('formCard').style.display = '';
+  document.getElementById('closedCard').style.display = 'none';
+  const ms = dl - now;
   const d = Math.floor(ms / 86400000), h = Math.floor(ms % 86400000 / 3600000), m = Math.floor(ms % 3600000 / 60000);
+  const dd = dl.getDate(), mm = dl.getMonth()+1, yy = String(dl.getFullYear()).slice(2);
+  const days = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+  document.getElementById('deadlineText').textContent =
+    '⏳ ההצבעה פתוחה עד יום ' + days[dl.getDay()] + ' ' + dd + '.' + mm + '.' + yy +
+    ' בשעה ' + pad2(dl.getHours()) + ':' + pad2(dl.getMinutes());
   document.getElementById('countdown').textContent =
     'נותרו ' + (d > 0 ? d + ' ימים, ' : '') + h + ' שעות ו-' + pad2(m) + ' דקות';
 }
@@ -331,7 +348,8 @@ function selectChoice(v, el) {
 function showErr(msg){ const e=document.getElementById('formErr'); e.textContent=msg; e.classList.add('show'); }
 
 document.getElementById('submitBtn').addEventListener('click', function(){
-  if (new Date() > DEADLINE) { updateDeadline(); return; }
+  const _dl = effectiveDeadline();
+  if (_dl === 'closed' || (_dl !== 'open' && new Date() > _dl)) { updateDeadline(); return; }
   const values = {};
   for (const f of FIELDS) {
     if (f === 'choice') { values[f] = selectedChoice; continue; }
@@ -377,6 +395,11 @@ function loadProgress(){
   fetch(SCRIPT_URL + '?action=formStats&form=' + encodeURIComponent(FORM_KEY))
     .then(r => r.json())
     .then(data => {
+      // מועד הסגירה מגיע מהשרת — כך שהארכה/סגירה מהאדמין משפיעה מיד
+      if (data.deadline === 'closed') { DEADLINE_OVERRIDE = 'closed'; }
+      else if (data.deadline === 'open') { DEADLINE_OVERRIDE = 'open'; }
+      else if (data.deadline) { const d = new Date(data.deadline); if (!isNaN(d)) DEADLINE_OVERRIDE = d; }
+      updateDeadline();
       const rows = data.rows || [];
       // הצבעה אחת לדירה — מפה: דירה → בעד/נגד
       const aptMap = {};
