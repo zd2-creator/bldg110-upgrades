@@ -10,14 +10,25 @@
   .topbar { background:#fff; border-bottom:1px solid #ddd; padding:12px 16px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; position:sticky; top:0; z-index:10; }
   .topbar h1 { font-size:16px; font-weight:800; flex:1; min-width:150px; }
   .badge { background:#e0f5ee; color:#0F6E56; font-size:13px; font-weight:700; padding:4px 12px; border-radius:20px; }
+  .sync { font-size:12px; color:#999; display:none; }
+  .sync.on { display:inline; }
   .btn { font-size:13px; font-weight:600; padding:8px 14px; border-radius:8px; cursor:pointer; border:1px solid #ccc; background:#fff; font-family:inherit; }
   .btn-green { background:#1D9E75; color:#fff; border-color:#1D9E75; }
   .wrap { max-width:900px; margin:18px auto; padding:0 14px 50px; }
-  .stats-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; }
+  .stats-row { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:12px; margin-bottom:16px; }
+  @media (max-width:600px) { .stats-row { grid-template-columns:1fr 1fr; } }
   .stat { background:#fff; border:1px solid #ddd; border-radius:10px; padding:16px; text-align:center; }
   .stat .num { font-size:28px; font-weight:800; color:#1D9E75; }
   .stat .lbl { font-size:12px; color:#999; margin-top:2px; }
   .card { background:#fff; border:1px solid #ddd; border-radius:10px; padding:16px; }
+  .tbl-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; margin:-4px; padding:4px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; min-width:520px; }
+  th { text-align:right; padding:9px 10px; border-bottom:2px solid #333; font-weight:700; background:#f5f5f5; white-space:nowrap; }
+  td { padding:8px 10px; border-bottom:1px solid #eee; vertical-align:middle; white-space:nowrap; }
+  td img { height:42px; max-width:100px; }
+  .err { text-align:center; padding:50px; color:#c00; display:none; }
+
+  /* ניהול מועד */
   .dl-card { background:#fff8ec; border:1.5px solid #f5d9a8; border-radius:10px; padding:16px; margin-bottom:16px; }
   .dl-card h3 { font-size:14px; font-weight:800; color:#8a5a00; margin-bottom:4px; }
   .dl-now { font-size:13px; color:#8a5a00; margin-bottom:12px; }
@@ -29,15 +40,25 @@
   .dl-close { background:#c0392b; color:#fff; }
   .dl-open { background:#fff; color:#8a5a00; border:1.5px solid #e0c088; }
   .dl-msg { font-size:13px; margin-top:10px; font-weight:700; display:none; }
-  .tbl-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; margin:-4px; padding:4px; }
-  table { width:100%; border-collapse:collapse; font-size:13px; min-width:520px; }
-  th { text-align:right; padding:9px 10px; border-bottom:2px solid #333; font-weight:700; background:#f5f5f5; white-space:nowrap; }
-  td { padding:8px 10px; border-bottom:1px solid #eee; vertical-align:middle; white-space:nowrap; }
-  td img { height:42px; max-width:100px; }
-  .loading, .err { text-align:center; padding:50px; color:#888; }
-  .err { color:#c00; display:none; }
+
+  /* מסך כניסה */
+  .login { position:fixed; inset:0; background:#f0f2f5; display:flex; align-items:center; justify-content:center; z-index:100; }
+  .login-box { background:#fff; border-radius:12px; padding:36px; width:300px; text-align:center; border:1px solid #ddd; }
+  .login-box input { width:100%; padding:12px; border:1.5px solid #ccc; border-radius:8px; font-size:15px; text-align:center; margin-bottom:12px; font-family:inherit; direction:ltr; }
+  .login-box button { width:100%; padding:12px; background:#1D9E75; color:#fff; border:none; border-radius:8px; font-size:15px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .login-box button:disabled { background:#aaa; }
+  .pw-err { color:#c00; font-size:13px; margin-top:10px; display:none; }
+
+  /* מסך טעינה */
+  .loader { display:none; text-align:center; padding:50px 20px; }
+  .loader.on { display:block; }
+  .spin { width:38px; height:38px; border:4px solid #e0f5ee; border-top-color:#1D9E75; border-radius:50%; margin:0 auto 16px; animation:spin .8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .ld-title { font-size:15px; font-weight:700; color:#333; min-height:22px; transition:opacity .3s; }
+  .ld-sub { font-size:12.5px; color:#888; margin-top:8px; line-height:1.6; max-width:340px; margin-inline:auto; }
+
   @media print {
-    .topbar, .no-print { display:none !important; }
+    .topbar, .no-print, .dl-card { display:none !important; }
     body { background:#fff; }
     .card, .stat { box-shadow:none; border:1px solid #333; }
     @page { size:A4; margin:1.4cm; }
@@ -45,16 +66,33 @@
 </style>
 </head>
 <body>
+
+<div class="login" id="loginScreen">
+  <div class="login-box">
+    <div style="font-size:40px;margin-bottom:14px">🔒</div>
+    <h2 style="font-size:16px;margin:0 0 20px;font-weight:800">דף מנהל — נדרשת סיסמה</h2>
+    <input type="password" id="pwInput" placeholder="סיסמה" autofocus onkeydown="if(event.key==='Enter')checkPw()" />
+    <button id="pwBtn" onclick="checkPw()">כניסה</button>
+    <div class="pw-err" id="pwErr"></div>
+  </div>
+</div>
+
 <div class="topbar">
   <h1>הצבעת שדרוגים — בניין 110 — אדמין</h1>
+  <span class="sync" id="syncPill">מרענן…</span>
   <span class="badge" id="countBadge">טוען…</span>
-  <button class="btn" onclick="loadData()">🔄 רענן</button>
+  <button class="btn" onclick="loadData(true)">🔄 רענן</button>
   <button class="btn btn-green no-print" onclick="window.print()">🖨️ הדפס / PDF</button>
 </div>
 
 <div class="wrap">
-  <div class="loading" id="loadingMsg">טוען נתונים…</div>
+  <div class="loader" id="loadingMsg">
+    <div class="spin"></div>
+    <div class="ld-title" id="ldTitle">מתחבר לשרת המאובטח של גוגל…</div>
+    <div class="ld-sub">הטעינה הראשונה יכולה לקחת כמה שניות — הנתונים שמורים בשרת מאובטח שמתעורר לפי דרישה ☕<br>מהפעם הבאה זה יהיה מיידי.</div>
+  </div>
   <div class="err" id="errMsg">שגיאה בטעינה</div>
+
   <div id="content" style="display:none">
     <div class="dl-card no-print">
       <h3>⏳ ניהול מועד ההצבעה</h3>
@@ -68,12 +106,13 @@
       <div class="dl-msg" id="dlMsg"></div>
     </div>
 
-    <div class="stats-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
+    <div class="stats-row">
       <div class="stat"><div class="num" id="stTotal">0</div><div class="lbl">הצביעו</div></div>
       <div class="stat"><div class="num" id="stPct" style="color:#0d6e52">0%</div><div class="lbl">בעד מכלל הבניין (52)</div></div>
       <div class="stat"><div class="num" id="stYes" style="color:#0d6e52">0</div><div class="lbl">👍 בעד</div></div>
       <div class="stat"><div class="num" id="stNo" style="color:#c0392b">0</div><div class="lbl">👎 נגד</div></div>
     </div>
+
     <div class="card">
       <div class="tbl-wrap">
         <table>
@@ -88,38 +127,89 @@
 <script>
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxn7f1-PycwsK8oh9uElLX_L6pe_bCwP7cg64k5YM97ybZ0GTssn3p5ziJX-vb47yVW/exec';
 const FORM_KEY   = 'שדרוגים';
+const TOTAL      = 52;
+const CACHE_KEY  = 'admin_cache_' + FORM_KEY;
 // הסיסמה נבדקת בשרת בלבד — לא שמורה כאן
-const ADMIN_PW = sessionStorage.getItem('admin_pw');
+let ADMIN_PW = sessionStorage.getItem('admin_pw') || '';
 
 // מנטרל תווי HTML — הגנה מפני XSS דרך שדות שהוקלדו בטופס
 function esc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
-function fetchAll(pw){
+function api(body){
   return fetch(SCRIPT_URL, { method:'POST', headers:{'Content-Type':'text/plain'},
-    body: JSON.stringify({ action:'formGetAll', form:FORM_KEY, password:pw }) }).then(r => r.json());
+    body: JSON.stringify(Object.assign({ form:FORM_KEY, password:ADMIN_PW }, body)) }).then(r => r.json());
 }
 
-function showLogin(msg){
-  document.body.innerHTML =
-    '<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f0f2f5;font-family:Arial;direction:rtl">' +
-    '<div style="background:#fff;border-radius:12px;padding:36px;width:300px;text-align:center;border:1px solid #ddd">' +
-    '<div style="font-size:40px;margin-bottom:14px">🔒</div>' +
-    '<h2 style="font-size:16px;margin:0 0 20px;font-weight:800">דף מנהל — נדרשת סיסמה</h2>' +
-    '<input type="password" id="pwInput" placeholder="סיסמה" autofocus style="width:100%;padding:12px;border:1.5px solid #ccc;border-radius:8px;font-size:15px;text-align:center;margin-bottom:12px;font-family:inherit;direction:ltr" onkeydown="if(event.key===\'Enter\')window.checkPw()" />' +
-    '<button id="pwBtn" onclick="window.checkPw()" style="width:100%;padding:12px;background:#1D9E75;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">כניסה</button>' +
-    '<div id="pwErr" style="color:#c00;font-size:13px;margin-top:10px;' + (msg?'':'display:none') + '">' + (msg||'') + '</div>' +
-    '</div></div>';
+// ── מסך טעינה עם הודעות מתחלפות ──
+const LD_MSGS = ['מתחבר לשרת המאובטח של גוגל…', 'מאמת את הסיסמה…', 'מושך את ההצבעות מהגיליון…', 'עוד רגע, כמעט שם…', 'גוגל לפעמים מתעורר לאט — עוד שניות ספורות ☕'];
+let ldTimer = null, ldIdx = 0;
+function showLoader(on){
+  const el = document.getElementById('loadingMsg');
+  clearInterval(ldTimer);
+  if (!on) { el.classList.remove('on'); return; }
+  ldIdx = 0; document.getElementById('ldTitle').textContent = LD_MSGS[0];
+  el.classList.add('on');
+  ldTimer = setInterval(() => {
+    ldIdx = Math.min(ldIdx + 1, LD_MSGS.length - 1);
+    const t = document.getElementById('ldTitle');
+    t.style.opacity = 0; setTimeout(() => { t.textContent = LD_MSGS[ldIdx]; t.style.opacity = 1; }, 300);
+  }, 2500);
 }
-window.checkPw = function(){
+function showSync(text){
+  const p = document.getElementById('syncPill');
+  if (!text) { p.classList.remove('on'); return; }
+  p.textContent = text; p.classList.add('on');
+}
+
+// ── כניסה: בדיקת הסיסמה מחזירה כבר את הנתונים — בלי טעינת דף מחדש ──
+function checkPw(){
   const val = document.getElementById('pwInput').value, btn = document.getElementById('pwBtn'), e = document.getElementById('pwErr');
   if (!val) return;
-  btn.disabled = true; btn.textContent = 'בודק…';
-  fetchAll(val).then(d => {
-    if (d.status === 'ok') { sessionStorage.setItem('admin_pw', val); location.reload(); }
-    else if (d.status === 'locked') { e.style.display='block'; e.textContent='🚫 יותר מדי ניסיונות — נחסם ל-15 דקות'; btn.disabled=false; btn.textContent='כניסה'; }
-    else { e.style.display='block'; e.textContent='❌ סיסמה שגויה'; btn.disabled=false; btn.textContent='כניסה'; }
-  }).catch(() => { e.style.display='block'; e.textContent='שגיאה בחיבור'; btn.disabled=false; btn.textContent='כניסה'; });
-};
+  btn.disabled = true; btn.textContent = 'בודק… (עד 10 שניות)';
+  ADMIN_PW = val;
+  api({ action:'formGetAll' }).then(d => {
+    if (d.status === 'ok') {
+      sessionStorage.setItem('admin_pw', val);
+      document.getElementById('loginScreen').style.display = 'none';
+      applyData(d, true);
+    } else {
+      ADMIN_PW = '';
+      e.style.display = 'block';
+      e.textContent = d.status === 'locked' ? '🚫 יותר מדי ניסיונות — נחסם ל-15 דקות' : '❌ סיסמה שגויה';
+      btn.disabled = false; btn.textContent = 'כניסה';
+    }
+  }).catch(() => { ADMIN_PW = ''; e.style.display='block'; e.textContent='שגיאה בחיבור — נסה שוב'; btn.disabled=false; btn.textContent='כניסה'; });
+}
+
+// ── טעינה: קודם מהזיכרון (מיידי), ואז רענון מהשרת ברקע ──
+function loadData(force){
+  if (!ADMIN_PW) return;
+  let cached = null;
+  try { cached = JSON.parse(sessionStorage.getItem(CACHE_KEY) || 'null'); } catch(e) {}
+  if (cached && cached.entries) { applyData(cached, false); showSync('מרענן…'); }
+  else showLoader(true);
+  document.getElementById('errMsg').style.display = 'none';
+
+  api({ action:'formGetAll' }).then(d => {
+    if (d.status === 'locked') { showLoader(false); showSync(''); const e=document.getElementById('errMsg'); e.style.display='block'; e.textContent='🚫 יותר מדי ניסיונות שגויים — נסה שוב בעוד 15 דקות'; return; }
+    if (d.status !== 'ok') { sessionStorage.removeItem('admin_pw'); sessionStorage.removeItem(CACHE_KEY); location.reload(); return; }
+    applyData(d, true);
+    showSync('עודכן ✓'); setTimeout(() => showSync(''), 2500);
+  }).catch(() => {
+    showLoader(false);
+    if (cached && cached.entries) { showSync('לא ניתן לרענן — מוצגים נתונים אחרונים'); }
+    else document.getElementById('errMsg').style.display = 'block';
+  });
+}
+
+function applyData(d, save){
+  showLoader(false);
+  render(d.entries || []);
+  // המועד מגיע יחד עם הנתונים; אם השרת ישן — קריאה נפרדת
+  if (d.deadline !== undefined) showDL(d.deadline);
+  else api({ action:'formDeadline' }).then(x => { if (x.status === 'ok') showDL(x.deadline); });
+  if (save) { try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ entries:d.entries||[], deadline:d.deadline, t:Date.now() })); } catch(e) {} }
+}
 
 // ── ניהול מועד הסגירה ──
 function fmtDL(v){
@@ -132,11 +222,6 @@ function fmtDL(v){
   return 'יום ' + days[d.getDay()] + ' ' + d.getDate() + '.' + (d.getMonth()+1) + '.' +
          String(d.getFullYear()).slice(2) + ' בשעה ' + p(d.getHours()) + ':' + p(d.getMinutes()) +
          (new Date() > d ? ' (עבר — ההצבעה סגורה)' : '');
-}
-function dlApi(body){
-  return fetch(SCRIPT_URL, { method:'POST', headers:{'Content-Type':'text/plain'},
-    body: JSON.stringify(Object.assign({ action:'formDeadline', form:FORM_KEY, password:ADMIN_PW }, body)) })
-    .then(r => r.json());
 }
 function showDL(v){
   document.getElementById('dlNow').innerHTML = 'מועד נוכחי: <b>' + esc(fmtDL(v)) + '</b>';
@@ -162,63 +247,47 @@ function setDeadline(preset){
     val = new Date(raw).toISOString();
   }
   if (preset === 'closed' && !confirm('לסגור את ההצבעה עכשיו? דיירים לא יוכלו להצביע יותר.')) return;
-  dlApi({ set: val }).then(d => {
+  dlMsg('שומר…', true);
+  api({ action:'formDeadline', set: val }).then(d => {
     if (d.status === 'ok') { showDL(d.deadline); dlMsg('✓ המועד עודכן', true); }
     else if (d.status === 'locked') dlMsg('🚫 נחסם ל-15 דקות', false);
     else dlMsg('שגיאה בעדכון', false);
   }).catch(() => dlMsg('שגיאה בחיבור', false));
 }
 
-function loadData(){
-  if (!ADMIN_PW) return;
-  document.getElementById('loadingMsg').style.display='block';
-  document.getElementById('content').style.display='none';
-  document.getElementById('errMsg').style.display='none';
-  fetchAll(ADMIN_PW).then(data => {
-    if (data.status === 'locked') { document.getElementById('loadingMsg').style.display='none'; const e=document.getElementById('errMsg'); e.style.display='block'; e.textContent='🚫 יותר מדי ניסיונות שגויים — נסה שוב בעוד 15 דקות'; return; }
-    if (data.status !== 'ok') { sessionStorage.removeItem('admin_pw'); location.reload(); return; }
-    render(data.entries || []);
-    dlApi({}).then(d => { if (d.status === 'ok') showDL(d.deadline); });
-  }).catch(() => { document.getElementById('loadingMsg').style.display='none'; document.getElementById('errMsg').style.display='block'; });
-}
-
 function render(entries){
-  document.getElementById('loadingMsg').style.display='none';
-  document.getElementById('content').style.display='block';
-  const apts = new Set(entries.map(e => parseInt(e.apt)).filter(n => !isNaN(n)));
-  document.getElementById('stTotal').textContent = entries.length;
+  document.getElementById('content').style.display = 'block';
   const yesCount = entries.filter(e => e.choice === 'בעד').length;
   const noCount  = entries.filter(e => e.choice === 'נגד').length;
+  document.getElementById('stTotal').textContent = entries.length;
   document.getElementById('stYes').textContent = yesCount;
   document.getElementById('stNo').textContent  = noCount;
-  document.getElementById('stPct').textContent = Math.round(yesCount / 52 * 100) + '%';
-  document.getElementById('countBadge').textContent = entries.length + ' רשומות';
+  document.getElementById('stPct').textContent = Math.round(yesCount / TOTAL * 100) + '%';
+  document.getElementById('countBadge').textContent = entries.length + ' הצבעות';
 
-  // עמודות: לפי המפתחות של הרשומה הראשונה, עם ts אחרון
+  const labels = { apt:'דירה', name:'שם', phone:'טלפון', email:'מייל', choice:'הצבעה', floor:'קומה', ts:'מועד' };
   const cols = entries.length ? Object.keys(entries[0]).filter(c => c !== 'ts').concat('ts') : [];
-  const thead = document.getElementById('thead');
-  thead.innerHTML = '<th class="num-col">#</th>' + cols.map(c => '<th>' + esc(c) + '</th>').join('');
+  document.getElementById('thead').innerHTML = '<th>#</th>' + cols.map(c => '<th>' + esc(labels[c] || c) + '</th>').join('');
 
   const tbody = document.getElementById('tbody'); tbody.innerHTML = '';
   entries.slice().sort((a,b) => (parseInt(a.apt)||999) - (parseInt(b.apt)||999)).forEach((e, i) => {
     const tr = document.createElement('tr');
     let html = '<td>' + (i+1) + '</td>';
     cols.forEach(c => {
-      const v = e[c] || '';
+      let v = e[c] || '';
       // חתימה base64 → תמונה; כל שאר השדות עוברים escape (הגנת XSS)
-      if ((c === 'sig' || c === 'signature') && String(v).startsWith('data:image')) {
-        html += '<td><img src="' + esc(v) + '"/></td>';
-      } else {
-        html += '<td>' + esc(v) + '</td>';
-      }
+      if ((c === 'sig' || c === 'signature') && String(v).startsWith('data:image')) { html += '<td><img src="' + esc(v) + '"/></td>'; return; }
+      if (c === 'phone') { v = String(v).replace(/\D/g,''); if (v.startsWith('972')) v = '0' + v.slice(3); else if (v.length === 9 && v[0] !== '0') v = '0' + v; }
+      let style = '';
+      if (c === 'choice') style = ' style="font-weight:700;color:' + (v === 'בעד' ? '#0d6e52' : '#c0392b') + '"';
+      html += '<td' + style + '>' + esc(v) + '</td>';
     });
     tr.innerHTML = html;
     tbody.appendChild(tr);
   });
 }
 
-if (!ADMIN_PW) { document.addEventListener('DOMContentLoaded', () => showLogin()); }
-else { loadData(); }
+if (ADMIN_PW) { document.getElementById('loginScreen').style.display = 'none'; loadData(); }
 </script>
 </body>
 </html>
