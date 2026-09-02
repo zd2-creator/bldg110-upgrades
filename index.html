@@ -101,6 +101,23 @@
   .closed h2 { color:#a33224; font-size:20px; margin:8px 0 8px; }
   .closed p { color:#7a4b44; font-size:14.5px; margin-bottom:6px; }
 
+  /* חגיגת רוב */
+  .maj-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:1000; align-items:center; justify-content:center; animation:fadeIn .4s ease; }
+  .maj-overlay.show { display:flex; }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  .maj-card { background:#fff; border-radius:20px; padding:34px 28px; text-align:center; max-width:370px; width:88%; box-shadow:0 20px 60px rgba(0,0,0,.3); animation:popIn .5s cubic-bezier(.175,.885,.32,1.275); }
+  @keyframes popIn { from{transform:scale(.5);opacity:0} to{transform:scale(1);opacity:1} }
+  .maj-emoji { font-size:56px; animation:bounce 1.2s ease infinite; display:inline-block; }
+  @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+  .maj-title { font-size:22px; font-weight:800; color:#0d6e52; margin:10px 0 6px; }
+  .maj-sub { font-size:14.5px; color:#555; line-height:1.7; margin-bottom:16px; }
+  .maj-stat { background:linear-gradient(135deg,#e0f5ee,#c8edd9); border:2px solid #1D9E75; border-radius:14px; padding:14px; margin-bottom:18px; }
+  .maj-stat .big-pct { font-size:38px; font-weight:800; color:#0d6e52; line-height:1.1; }
+  .maj-stat .small { font-size:13px; color:#177a5c; font-weight:700; }
+  .maj-btn { background:#1D9E75; color:#fff; border:none; border-radius:12px; padding:13px 26px; font-size:15px; font-weight:800; cursor:pointer; font-family:inherit; width:100%; }
+  #confettiCanvas { position:fixed; inset:0; pointer-events:none; z-index:1001; display:none; }
+  .maj-banner { display:none; background:linear-gradient(135deg,#e0f5ee,#d2f0e2); border:2px solid #1D9E75; border-radius:12px; padding:13px 16px; text-align:center; font-size:14.5px; font-weight:800; color:#0d6e52; margin-bottom:16px; }
+
   /* התקדמות */
   .prog { background:#fff; border:1px solid #ddd; border-radius:12px; padding:16px; margin-top:16px; }
   .prog-top { display:flex; justify-content:space-between; font-size:13px; color:#555; margin-bottom:8px; }
@@ -137,6 +154,8 @@
     <span id="deadlineText">⏳ ההצבעה פתוחה עד יום ראשון 6.9.26 בשעה 23:59</span>
     <span class="cd" id="countdown"></span>
   </div>
+
+  <div class="maj-banner" id="majBanner">🎉 הושג רוב של 67% — החבילה אושרה!</div>
 
   <div class="card closed" id="closedCard" style="display:none">
     <div class="big">⏰</div>
@@ -288,6 +307,20 @@
   </div>
 </div>
 
+<div class="maj-overlay" id="majOverlay">
+  <div class="maj-card">
+    <span class="maj-emoji">🎉</span>
+    <div class="maj-title">הושג רוב של 67%!</div>
+    <div class="maj-sub">על פי תקנון הבית המשותף נדרש רוב של 67% —<br>ועברנו אותו!</div>
+    <div class="maj-stat">
+      <div class="big-pct" id="majPct">67%</div>
+      <div class="small" id="majCount">35 דירות מתוך 52 הצביעו בעד</div>
+    </div>
+    <button class="maj-btn" onclick="closeMaj()">מעולה! 🎉</button>
+  </div>
+</div>
+<canvas id="confettiCanvas"></canvas>
+
 <script>
 // ═══ הגדרות ═══
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxn7f1-PycwsK8oh9uElLX_L6pe_bCwP7cg64k5YM97ybZ0GTssn3p5ziJX-vb47yVW/exec';
@@ -416,6 +449,72 @@ document.getElementById('submitBtn').addEventListener('click', function(){
     .catch(() => { showErr('שגיאה בשליחה — נסה שוב'); btn.disabled = false; loading.style.display = 'none'; });
 });
 
+// ── חגיגת רוב 67% ──
+const MAJORITY_TARGET = 35; // ceil(52 * 0.67)
+let majShown = false;
+
+function checkMajority(yes) {
+  if (yes < MAJORITY_TARGET) return;
+  document.getElementById('majBanner').style.display = 'block';
+  document.getElementById('majPct').textContent = Math.round(yes / TOTAL * 100) + '%';
+  document.getElementById('majCount').textContent = yes + ' דירות מתוך ' + TOTAL + ' הצביעו בעד';
+  // האוברליי מוצג פעם אחת לכל מכשיר
+  let seen = null;
+  try { seen = localStorage.getItem('maj_seen'); } catch(e) {}
+  if (majShown || seen) return;
+  majShown = true;
+  try { localStorage.setItem('maj_seen', '1'); } catch(e) {}
+  setTimeout(() => {
+    document.getElementById('majOverlay').classList.add('show');
+    startConfetti();
+  }, 500);
+}
+function closeMaj() {
+  document.getElementById('majOverlay').classList.remove('show');
+  stopConfetti();
+}
+
+// קונפטי — פתיתים צבעוניים נופלים ומסתובבים
+const cfCanvas = document.getElementById('confettiCanvas');
+const cfCtx = cfCanvas.getContext('2d');
+let cfRunning = false, cfPieces = [];
+const CF_COLORS = ['#1D9E75','#FFD700','#FF6B6B','#4FC3F7','#CE93D8','#FFB74D','#81C784'];
+
+function startConfetti() {
+  cfCanvas.style.display = 'block';
+  cfCanvas.width = innerWidth; cfCanvas.height = innerHeight;
+  cfPieces = [];
+  for (let i = 0; i < 160; i++) {
+    cfPieces.push({
+      x: Math.random() * cfCanvas.width,
+      y: -20 - Math.random() * cfCanvas.height * 0.6,
+      w: 7 + Math.random() * 6, h: 10 + Math.random() * 8,
+      vy: 2 + Math.random() * 3, vx: -1.2 + Math.random() * 2.4,
+      rot: Math.random() * Math.PI, vr: -0.12 + Math.random() * 0.24,
+      color: CF_COLORS[Math.floor(Math.random() * CF_COLORS.length)]
+    });
+  }
+  cfRunning = true;
+  cfLoop();
+  setTimeout(stopConfetti, 6000);
+}
+function stopConfetti() { cfRunning = false; }
+function cfLoop() {
+  cfCtx.clearRect(0, 0, cfCanvas.width, cfCanvas.height);
+  let alive = false;
+  cfPieces.forEach(p => {
+    p.y += p.vy; p.x += p.vx + Math.sin(p.y / 40); p.rot += p.vr;
+    if (p.y < cfCanvas.height + 30) alive = true;
+    cfCtx.save();
+    cfCtx.translate(p.x, p.y); cfCtx.rotate(p.rot);
+    cfCtx.fillStyle = p.color;
+    cfCtx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+    cfCtx.restore();
+  });
+  if ((cfRunning || alive) && cfPieces.length) requestAnimationFrame(cfLoop);
+  else cfCanvas.style.display = 'none';
+}
+
 function loadProgress(){
   fetch(SCRIPT_URL + '?action=formStats&form=' + encodeURIComponent(FORM_KEY))
     .then(r => r.json())
@@ -444,6 +543,7 @@ function loadProgress(){
         c.textContent = i; grid.appendChild(c);
       }
       markVotedApts(new Set(voted));
+      checkMajority(yes);
     })
     .catch(() => { document.getElementById('progLabel').textContent = ''; });
 }
