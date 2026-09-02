@@ -122,6 +122,11 @@
   .prog { background:#fff; border:1px solid #ddd; border-radius:12px; padding:16px; margin-top:16px; }
   .prog-top { display:flex; justify-content:space-between; font-size:13px; color:#555; margin-bottom:8px; }
   .prog-top strong { color:#1D9E75; }
+  .prog-loading { text-align:center; padding:22px 10px 14px; color:#666; font-size:13.5px; }
+  .prog-loading .mini-spin { display:inline-block; width:18px; height:18px; border:3px solid #e0f5ee; border-top-color:#1D9E75; border-radius:50%; animation:spin .8s linear infinite; vertical-align:-4px; margin-inline-end:8px; }
+  .prog-loading small { display:block; color:#aaa; font-size:11.5px; margin-top:6px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .prog-sync { font-size:11px; color:#aaa; font-weight:400; margin-inline-start:6px; }
   .prog-bar { height:12px; background:#eee; border-radius:10px; overflow:hidden; }
   .prog-fill { height:100%; background:#1D9E75; border-radius:10px; transition:width .5s; width:0%; }
   .vote-sum { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:14px 0 4px; }
@@ -291,8 +296,10 @@
 
   <!-- התקדמות -->
   <div class="prog" id="progCard">
-    <div class="prog-top"><span>התקדמות ההצבעה</span><strong id="progLabel">טוען…</strong></div>
+    <div class="prog-top"><span>התקדמות ההצבעה</span><strong id="progLabel"><span class="prog-sync" id="progSync"></span></strong></div>
     <div class="prog-bar"><div class="prog-fill" id="progFill"></div></div>
+    <div class="prog-loading" id="progLoading"><span class="mini-spin"></span><span id="progLdText">מושך את ההצבעות מהשרת המאובטח…</span><small>בפעם הראשונה זה לוקח כמה שניות ☕ — אחר כך מיידי</small></div>
+    <div id="progBody">
     <div class="vote-sum">
       <div class="vbox yes"><div class="n" id="cntYes">—</div><div class="l">👍 בעד</div></div>
       <div class="vbox no"><div class="n" id="cntNo">—</div><div class="l">👎 נגד</div></div>
@@ -304,6 +311,7 @@
       <span><span class="sw" style="background:#f5f5f5;border:1px dashed #e0e0e0"></span> טרם הצביע</span>
     </div>
     <div class="apt-grid" id="aptGrid"></div>
+    </div>
   </div>
 </div>
 
@@ -515,10 +523,39 @@ function cfLoop() {
   else cfCanvas.style.display = 'none';
 }
 
+const STATS_CACHE = 'stats_cache_' + FORM_KEY;
+const LD_TEXTS = ['מושך את ההצבעות מהשרת המאובטח…', 'סופר בעד ונגד…', 'עוד רגע, כמעט שם…', 'גוגל לפעמים מתעורר לאט ☕'];
+let ldTimer = null;
+function progLoading(on){
+  const el = document.getElementById('progLoading'), body = document.getElementById('progBody');
+  clearInterval(ldTimer);
+  if (!on) { el.style.display = 'none'; body.style.display = ''; return; }
+  el.style.display = 'block'; body.style.display = 'none';
+  let i = 0; document.getElementById('progLdText').textContent = LD_TEXTS[0];
+  ldTimer = setInterval(() => { i = Math.min(i + 1, LD_TEXTS.length - 1); document.getElementById('progLdText').textContent = LD_TEXTS[i]; }, 2200);
+}
+function progSync(t){ document.getElementById('progSync').textContent = t || ''; }
+
 function loadProgress(){
+  // תצוגה מיידית מהזיכרון המקומי (נתונים לא-אישיים בלבד), ואז רענון מהשרת
+  let cached = null;
+  try { cached = JSON.parse(localStorage.getItem(STATS_CACHE) || 'null'); } catch(e) {}
+  if (cached && cached.rows) { renderStats(cached); progSync('מעדכן…'); }
+  else progLoading(true);
+
   fetch(SCRIPT_URL + '?action=formStats&form=' + encodeURIComponent(FORM_KEY))
     .then(r => r.json())
     .then(data => {
+      try { localStorage.setItem(STATS_CACHE, JSON.stringify(data)); } catch(e) {}
+      renderStats(data);
+      progSync('עודכן ✓'); setTimeout(() => progSync(''), 2000);
+    })
+    .catch(() => { progLoading(false); if (!cached) document.getElementById('progLabel').textContent = 'לא ניתן לטעון כרגע'; else progSync(''); });
+}
+
+function renderStats(data){
+  progLoading(false);
+  {
       // מועד הסגירה מגיע מהשרת — כך שהארכה/סגירה מהאדמין משפיעה מיד
       if (data.deadline === 'closed') { DEADLINE_OVERRIDE = 'closed'; }
       else if (data.deadline === 'open') { DEADLINE_OVERRIDE = 'open'; }
@@ -532,7 +569,7 @@ function loadProgress(){
       const yes = voted.filter(a => aptMap[a] === 'בעד').length;
       const no  = voted.filter(a => aptMap[a] === 'נגד').length;
       const pct = Math.round(voted.length / TOTAL * 100);
-      document.getElementById('progLabel').textContent = voted.length + ' / ' + TOTAL + ' דירות הצביעו (' + pct + '%)';
+      document.getElementById('progLabel').innerHTML = voted.length + ' / ' + TOTAL + ' דירות הצביעו (' + pct + '%)' + '<span class="prog-sync" id="progSync"></span>';
       document.getElementById('progFill').style.width = pct + '%';
       document.getElementById('cntYes').textContent = yes;
       document.getElementById('cntNo').textContent = no;
@@ -544,8 +581,7 @@ function loadProgress(){
       }
       markVotedApts(new Set(voted));
       checkMajority(yes);
-    })
-    .catch(() => { document.getElementById('progLabel').textContent = ''; });
+  }
 }
 loadProgress();
 </script>
