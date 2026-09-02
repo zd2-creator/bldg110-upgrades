@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>הצבעת דיירים — חבילת השדרוגים · בניין 110</title>
+<meta property="og:type" content="website">
+<meta property="og:title" content="🏢 הצבעת דיירים — חבילת השדרוגים · בניין 110">
+<meta property="og:description" content="בעד או נגד חבילת השדרוגים (עד 3,000 ₪ לדירה) — הצביעו עד סוף השבוע 🙏">
+<meta name="theme-color" content="#1D9E75">
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  body { font-family:Arial,'Heebo',sans-serif; background:#f5f5f5; direction:rtl; color:#333; line-height:1.6; }
+  .page { max-width:560px; margin:0 auto; padding:16px 16px 60px; }
+  .hero { text-align:center; padding:20px 10px 8px; }
+  .hero h1 { font-size:22px; font-weight:800; margin-bottom:6px; }
+  .hero p { color:#666; font-size:14px; }
+  .card { background:#fff; border:1px solid #ddd; border-radius:12px; padding:20px; margin-bottom:16px; box-shadow:0 6px 20px -12px rgba(0,0,0,.15); }
+  .card h2 { font-size:16px; margin-bottom:16px; font-weight:700; }
+
+  /* הודעת הנציגות */
+  .msg { font-size:14.5px; line-height:1.8; }
+  .msg p { margin-bottom:10px; }
+  .msg .vote-opts { background:#f8f9fa; border:1px solid #eee; border-radius:10px; padding:12px 14px; margin:10px 0; }
+  .msg .vote-opts div { margin:4px 0; }
+  .msg .signoff { color:#666; }
+
+  /* רשימת השדרוגים — אקורדיון לפי עדיפות */
+  details.prio { border:1.5px solid #e5e5e5; border-radius:10px; margin-bottom:10px; overflow:hidden; background:#fff; }
+  details.prio summary { list-style:none; cursor:pointer; padding:13px 16px; display:flex; align-items:center; gap:10px; font-weight:700; font-size:14.5px; user-select:none; }
+  details.prio summary::-webkit-details-marker { display:none; }
+  details.prio summary .arrow { margin-inline-start:auto; transition:transform .2s; color:#999; font-size:12px; }
+  details.prio[open] summary .arrow { transform:rotate(180deg); }
+  details.prio summary .sum-cost { font-weight:800; font-size:13.5px; white-space:nowrap; }
+  .tag { font-size:11.5px; font-weight:800; padding:3px 10px; border-radius:20px; white-space:nowrap; }
+  .tag-high { background:#e0f5ee; color:#0d6e52; }
+  .tag-mid  { background:#fef3e2; color:#b26a00; }
+  .tag-low  { background:#f0f0f0; color:#777; }
+  .items { border-top:1px solid #eee; }
+  .item { display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:9px 16px; border-bottom:1px solid #f4f4f4; }
+  .item:last-child { border-bottom:none; }
+  .item .nm { font-size:13.5px; }
+  .item .nm .qty { color:#999; font-size:12px; }
+  .item .nm .note { display:block; color:#999; font-size:11.5px; line-height:1.5; }
+  .item .cost { font-size:13px; font-weight:700; white-space:nowrap; color:#444; }
+
+  /* סיכום עלויות */
+  .cost-box { background:linear-gradient(135deg,#e0f5ee,#f0faf6); border:1.5px solid #9FE1CB; border-radius:12px; padding:16px; text-align:center; margin-top:14px; }
+  .cost-box .total { font-size:15px; color:#555; }
+  .cost-box .total b { color:#0d6e52; }
+  .cost-box .per { font-size:24px; font-weight:800; color:#0d6e52; margin:4px 0 2px; }
+  .cost-box .cap { font-size:12.5px; color:#666; }
+
+  /* טופס */
+  .field { margin-bottom:14px; }
+  label { display:block; font-size:13px; color:#555; margin-bottom:5px; font-weight:600; }
+  label .req { color:#c0392b; }
+  input { width:100%; padding:11px 12px; border:1.5px solid #ccc; border-radius:8px; font-size:15px; font-family:inherit; direction:rtl; background:#fafafa; }
+  input:focus { outline:none; border-color:#1D9E75; background:#fff; }
+  input.invalid { border-color:#c0392b; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .choice-cards { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+  .choice-card { border:2px solid #ddd; border-radius:10px; padding:16px 10px; text-align:center; cursor:pointer; transition:all .18s; background:#fff; }
+  .choice-card .ic { font-size:28px; margin-bottom:6px; }
+  .choice-card .t { font-weight:700; font-size:15px; }
+  .choice-card .s { font-size:11.5px; color:#999; margin-top:2px; }
+  .choice-card:hover { border-color:#aaa; }
+  .choice-card.sel { border-color:#1D9E75; background:#e0f5ee; }
+  .choice-card.sel .t { color:#0d6e52; }
+  .choice-card.sel-no { border-color:#c0392b; background:#fdecea; }
+  .choice-card.sel-no .t { color:#8e2b20; }
+  #sigCanvas { width:100%; height:110px; border:1.5px solid #ccc; border-radius:8px; touch-action:none; background:#fff; display:block; }
+  .sig-clear { font-size:12px; color:#888; background:none; border:1px solid #ddd; border-radius:6px; padding:4px 10px; margin-top:6px; cursor:pointer; }
+  .btn { width:100%; padding:13px; background:#1D9E75; color:#fff; border:none; border-radius:10px; font-size:16px; font-weight:800; cursor:pointer; font-family:inherit; margin-top:4px; }
+  .btn:disabled { background:#aaa; cursor:not-allowed; }
+  .err { color:#c0392b; font-size:13px; margin-top:8px; display:none; }
+  .err.show { display:block; }
+  .loading { display:none; text-align:center; padding:10px; color:#666; font-size:14px; }
+  .success { display:none; text-align:center; padding:36px 18px; }
+  .success .big { font-size:52px; }
+  .success h2 { font-size:20px; color:#1D9E75; margin:8px 0 6px; }
+
+  /* התקדמות */
+  .prog { background:#fff; border:1px solid #ddd; border-radius:12px; padding:16px; margin-top:16px; }
+  .prog-top { display:flex; justify-content:space-between; font-size:13px; color:#555; margin-bottom:8px; }
+  .prog-top strong { color:#1D9E75; }
+  .prog-bar { height:12px; background:#eee; border-radius:10px; overflow:hidden; }
+  .prog-fill { height:100%; background:#1D9E75; border-radius:10px; transition:width .5s; width:0%; }
+  .vote-sum { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:14px 0 4px; }
+  .vbox { border-radius:10px; padding:12px; text-align:center; }
+  .vbox.yes { background:#e0f5ee; border:1px solid #9FE1CB; }
+  .vbox.no  { background:#fdecea; border:1px solid #f5c6c0; }
+  .vbox .n { font-size:26px; font-weight:800; }
+  .vbox.yes .n { color:#0d6e52; }
+  .vbox.no  .n { color:#c0392b; }
+  .vbox .l { font-size:12px; color:#777; }
+  .map-label { font-size:12.5px; font-weight:700; color:#555; margin-top:12px; }
+  .legend { display:flex; gap:12px; font-size:11px; color:#888; margin:6px 0 8px; flex-wrap:wrap; }
+  .legend span { display:flex; align-items:center; gap:4px; }
+  .sw { width:12px; height:12px; border-radius:3px; display:inline-block; }
+  .apt-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(40px,1fr)); gap:5px; }
+  .apt-cell { height:36px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; }
+  .apt-yes { background:#e0f5ee; color:#0F6E56; border:1px solid #9FE1CB; }
+  .apt-no  { background:#fdecea; color:#c0392b; border:1px solid #f5c6c0; }
+  .apt-off { background:#f5f5f5; color:#ccc; border:1px dashed #e0e0e0; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="hero">
+    <h1>🏢 הצבעת דיירים — חבילת השדרוגים</h1>
+    <p>בניין 110 · עד 3,000 ₪ לדירה · עד 6 תשלומים</p>
+  </div>
+
+  <!-- הודעת הנציגות -->
+  <div class="card msg" id="msgCard">
+    <p><b>שכנים יקרים שלום 🙏</b></p>
+    <p>לאחר שריכזנו את כלל השדרוגים ושיקפנו אותם לפי סדרי עדיפויות, אנחנו מבקשים לקבל את אישורכם להתקדם עם חבילת השדרוגים הכוללת, במסגרת של עד <b>3,000 ₪ לדירה</b>.</p>
+    <div class="vote-opts">
+      <div>👍 <b>בעד</b> — מאשר את חבילת השדרוגים ומסכים להתקדם.</div>
+      <div>👎 <b>נגד</b> — מתנגד להתקדמות עם חבילת השדרוגים.</div>
+    </div>
+    <p>ניתן יהיה לפרוס את התשלום עד <b>6 תשלומים</b> באמצעות חברת הניהול.</p>
+    <p>נשמח לקבל את הצבעתכם עד סוף השבוע הקרוב.</p>
+    <p class="signoff">תודה רבה 🙏<br>נציגות הדיירים</p>
+  </div>
+
+  <!-- רשימת השדרוגים -->
+  <div class="card" id="listCard">
+    <h2>📋 מה כוללת החבילה?</h2>
+
+    <details class="prio">
+      <summary><span class="tag tag-high">עדיפות גבוהה</span> 18 שדרוגים <span class="sum-cost">₪98,230</span><span class="arrow">▼</span></summary>
+      <div class="items">
+        <div class="item"><span class="nm">רשת מצלמות <span class="qty">×24</span><span class="note">אין הכנות בבניין — נדרשות תשתיות ופירוק תקרות גבס</span></span><span class="cost">₪38,400</span></div>
+        <div class="item"><span class="nm">רשתות נגד יונים <span class="qty">×6</span><span class="note">העלות בגלל ההתקנה, לא גודל הרשת</span></span><span class="cost">₪24,000</span></div>
+        <div class="item"><span class="nm">מזגן לחדר דיירים <span class="qty">×2</span><span class="note">4.5 כ״ס, ידרוש ייעוץ בגלל התקרה הגבוהה</span></span><span class="cost">₪9,000</span></div>
+        <div class="item"><span class="nm">מטבח לחדר דיירים<span class="note">חלק תחתון, כיור ושיש</span></span><span class="cost">₪6,000</span></div>
+        <div class="item"><span class="nm">רשת וויפי/סלולרית לחניונים <span class="qty">×2</span></span><span class="cost">₪5,000</span></div>
+        <div class="item"><span class="nm">קודנים לכניסות מחניון <span class="qty">×4</span><span class="note">2 כניסות מכל חניון</span></span><span class="cost">₪4,000</span></div>
+        <div class="item"><span class="nm">פתיחת מחסום דרך אפליקציה</span><span class="cost">₪3,000</span></div>
+        <div class="item"><span class="nm">מקרר לחדר דיירים</span><span class="cost">₪2,000</span></div>
+        <div class="item"><span class="nm">מזוזה + בית מזוזה <span class="qty">×8</span><span class="note">לובאים, מועדון דיירים, יציאה אחורית</span></span><span class="cost">₪1,600</span></div>
+        <div class="item"><span class="nm">כיסאות פלסטיק <span class="qty">×50</span></span><span class="cost">₪1,250</span></div>
+        <div class="item"><span class="nm">הובלות לסחורות <span class="qty">×2</span></span><span class="cost">₪1,000</span></div>
+        <div class="item"><span class="nm">שולחנות פלסטיק <span class="qty">×6</span></span><span class="cost">₪720</span></div>
+        <div class="item"><span class="nm">שכפול מפתחות <span class="qty">×40</span><span class="note">פיקוד שבת, חדרים טכניים, גג, חדר דיירים ועוד</span></span><span class="cost">₪600</span></div>
+        <div class="item"><span class="nm">ציוד ראשוני<span class="note">מגב, מטאטא, נייר טואלט ועוד</span></span><span class="cost">₪500</span></div>
+        <div class="item"><span class="nm">התקנות מקצועיות<span class="note">שעת עבודה של הנדימן</span></span><span class="cost">₪500</span></div>
+        <div class="item"><span class="nm">מנעולים לפיר אשפה <span class="qty">×24</span><span class="note">ייבדק בשטח אם נדרש או פירוק ידית בלבד</span></span><span class="cost">₪360</span></div>
+        <div class="item"><span class="nm">שלט תקנון בכניסה לחדר דיירים</span><span class="cost">₪200</span></div>
+        <div class="item"><span class="nm">ווים לחדר דיירים <span class="qty">×10</span><span class="note">עבור ימי הולדת</span></span><span class="cost">₪100</span></div>
+      </div>
+    </details>
+
+    <details class="prio">
+      <summary><span class="tag tag-mid">עדיפות בינונית</span> 9 שדרוגים <span class="sum-cost">₪29,350</span><span class="arrow">▼</span></summary>
+      <div class="items">
+        <div class="item"><span class="nm">וילונות עיצוב ללובי ראשי <span class="qty">×2</span></span><span class="cost">₪6,000</span></div>
+        <div class="item"><span class="nm">עיצוב לובי ראשי<span class="note">עציצים</span></span><span class="cost">₪5,000</span></div>
+        <div class="item"><span class="nm">סנסורים לחניונים <span class="qty">×10</span></span><span class="cost">₪4,500</span></div>
+        <div class="item"><span class="nm">דפיברילטור + ערכת עזרה ראשונה</span><span class="cost">₪4,000</span></div>
+        <div class="item"><span class="nm">עיצוב לובי חניונים <span class="qty">×2</span><span class="note">כניסה דרך החניונים</span></span><span class="cost">₪4,000</span></div>
+        <div class="item"><span class="nm">ריהוט בלובי ראשי <span class="qty">×2</span><span class="note">כורסא, מזנון, תמונה…</span></span><span class="cost">₪3,000</span></div>
+        <div class="item"><span class="nm">סנסורים ללובאים <span class="qty">×3</span><span class="note">חיסכון בחשמל בלובאי קומות כניסה</span></span><span class="cost">₪1,350</span></div>
+        <div class="item"><span class="nm">שעון שבת למעלית שבת</span><span class="cost">₪1,000</span></div>
+        <div class="item"><span class="nm">אדנית הפרדה ברחבת לובי ראשי<span class="note">תשלום משותף עם המסחר הצמוד ללובי</span></span><span class="cost">₪500</span></div>
+      </div>
+    </details>
+
+    <details class="prio">
+      <summary><span class="tag tag-low">עדיפות נמוכה</span> 3 שדרוגים <span class="sum-cost">₪20,000</span><span class="arrow">▼</span></summary>
+      <div class="items">
+        <div class="item"><span class="nm">מצלמות לפירי אשפה בכל קומה <span class="qty">×14</span><span class="note">ייבדק אם צריך 2 בכל קומה</span></span><span class="cost">₪14,000</span></div>
+        <div class="item"><span class="nm">שדרוג דלת כניסה ללובי ראשי<span class="note">פתיחה אוטומטית או החלפה לדלת הזזה</span></span><span class="cost">₪5,000</span></div>
+        <div class="item"><span class="nm">מתקן אופניים <span class="qty">×2</span><span class="note">ייבדק בשטח איזה מתקן נכון להתקין</span></span><span class="cost">₪1,000</span></div>
+      </div>
+    </details>
+
+    <div class="cost-box">
+      <div class="total">סה״כ החבילה המלאה: <b>₪147,580</b> · 52 דירות</div>
+      <div class="per">עד 3,000 ₪ לדירה</div>
+      <div class="cap">ניתן לפרוס עד 6 תשלומים דרך חברת הניהול</div>
+    </div>
+  </div>
+
+  <!-- טופס ההצבעה -->
+  <div class="card" id="formCard">
+    <h2>🗳️ ההצבעה שלי</h2>
+
+    <label>מה ההצבעה שלך? <span class="req">*</span></label>
+    <div class="choice-cards">
+      <div class="choice-card" onclick="selectChoice('בעד', this)">
+        <div class="ic">👍</div>
+        <div class="t">בעד</div>
+        <div class="s">מאשר/ת להתקדם</div>
+      </div>
+      <div class="choice-card" onclick="selectChoice('נגד', this)">
+        <div class="ic">👎</div>
+        <div class="t">נגד</div>
+        <div class="s">מתנגד/ת להתקדמות</div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="field">
+        <label>מספר דירה <span class="req">*</span></label>
+        <input id="f_apt" inputmode="numeric" placeholder="12" />
+      </div>
+      <div class="field">
+        <label>שם בעל הדירה <span class="req">*</span></label>
+        <input id="f_name" placeholder="ישראל ישראלי" autocomplete="name" />
+      </div>
+    </div>
+
+    <div id="formErr" class="err"></div>
+    <button class="btn" id="submitBtn">שליחת הצבעה ✓</button>
+    <div class="loading" id="loading">שולח… אנא המתן</div>
+  </div>
+
+  <div class="card success" id="successCard">
+    <div class="big">✅</div>
+    <h2>הצבעתך נרשמה!</h2>
+    <p id="successMsg"></p>
+  </div>
+
+  <!-- התקדמות -->
+  <div class="prog" id="progCard">
+    <div class="prog-top"><span>התקדמות ההצבעה</span><strong id="progLabel">טוען…</strong></div>
+    <div class="prog-bar"><div class="prog-fill" id="progFill"></div></div>
+    <div class="vote-sum">
+      <div class="vbox yes"><div class="n" id="cntYes">—</div><div class="l">👍 בעד</div></div>
+      <div class="vbox no"><div class="n" id="cntNo">—</div><div class="l">👎 נגד</div></div>
+    </div>
+    <div class="map-label">מפת דירות</div>
+    <div class="legend">
+      <span><span class="sw" style="background:#e0f5ee;border:1px solid #9FE1CB"></span> בעד</span>
+      <span><span class="sw" style="background:#fdecea;border:1px solid #f5c6c0"></span> נגד</span>
+      <span><span class="sw" style="background:#f5f5f5;border:1px dashed #e0e0e0"></span> טרם הצביע</span>
+    </div>
+    <div class="apt-grid" id="aptGrid"></div>
+  </div>
+</div>
+
+<script>
+// ═══ הגדרות ═══
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxn7f1-PycwsK8oh9uElLX_L6pe_bCwP7cg64k5YM97ybZ0GTssn3p5ziJX-vb47yVW/exec';
+const FORM_KEY   = 'שדרוגים';
+const FIELDS     = ['apt','name','choice'];
+const TOTAL      = 52;
+// ══════════════
+
+let selectedChoice = null;
+function selectChoice(v, el) {
+  selectedChoice = v;
+  document.querySelectorAll('.choice-card').forEach(c => c.classList.remove('sel','sel-no'));
+  el.classList.add(v === 'נגד' ? 'sel-no' : 'sel');
+}
+
+// ── חתימה ──
+const canvas = document.getElementById('sigCanvas');
+let hasSig = false;
+if (canvas) {
+  const ctx = canvas.getContext('2d');
+  let drawing = false;
+  function resize() {
+    const dpr = window.devicePixelRatio || 1, r = canvas.getBoundingClientRect();
+    if (canvas.width === r.width*dpr && canvas.height === r.height*dpr) return;
+    canvas.width = r.width*dpr; canvas.height = r.height*dpr;
+    ctx.scale(dpr,dpr); ctx.strokeStyle='#111'; ctx.lineWidth=2; ctx.lineCap='round'; ctx.lineJoin='round';
+  }
+  setTimeout(resize, 100); window.addEventListener('resize', resize);
+  function pos(e){ const r=canvas.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return {x:t.clientX-r.left, y:t.clientY-r.top}; }
+  function down(e){ e.preventDefault(); drawing=true; const p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); }
+  function move(e){ if(!drawing)return; e.preventDefault(); const p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); hasSig=true; }
+  function up(){ drawing=false; }
+  canvas.addEventListener('mousedown',down); canvas.addEventListener('mousemove',move);
+  canvas.addEventListener('mouseup',up); canvas.addEventListener('mouseleave',up);
+  canvas.addEventListener('touchstart',down,{passive:false}); canvas.addEventListener('touchmove',move,{passive:false}); canvas.addEventListener('touchend',up);
+  window.clearSig = function(){ ctx.clearRect(0,0,canvas.width,canvas.height); hasSig=false; };
+}
+function sigDataURL(){ const s=document.createElement('canvas'); s.width=300; s.height=90; s.getContext('2d').drawImage(canvas,0,0,300,90); return s.toDataURL('image/png'); }
+
+function showErr(msg){ const e=document.getElementById('formErr'); e.textContent=msg; e.classList.add('show'); }
+
+document.getElementById('submitBtn').addEventListener('click', function(){
+  const values = {};
+  for (const f of FIELDS) {
+    if (f === 'sig') continue;
+    if (f === 'choice') { values[f] = selectedChoice; continue; }
+    const el = document.getElementById('f_' + f);
+    values[f] = el ? el.value.trim() : '';
+  }
+  if (!selectedChoice) { showErr('יש לבחור בעד או נגד'); return; }
+  for (const f of ['apt','name']) {
+    const el = document.getElementById('f_' + f);
+    if (!values[f]) { showErr('יש למלא את כל השדות המסומנים ב-*'); if(el) el.classList.add('invalid'); return; }
+    if (el) el.classList.remove('invalid');
+  }
+  if (!hasSig) { showErr('יש לחתום בשדה החתימה'); return; }
+  document.getElementById('formErr').classList.remove('show');
+
+  const btn = document.getElementById('submitBtn'), loading = document.getElementById('loading');
+  btn.disabled = true; loading.style.display = 'block';
+  values.sig = sigDataURL();
+
+  fetch(SCRIPT_URL, { method:'POST', headers:{'Content-Type':'text/plain'},
+    body: JSON.stringify({ action:'formSubmit', form:FORM_KEY, fields:FIELDS, values:values }) })
+    .then(r => r.json())
+    .then(d => {
+      if (d.status === 'ok') {
+        document.getElementById('formCard').style.display = 'none';
+        document.getElementById('msgCard').style.display = 'none';
+        document.getElementById('successMsg').textContent = 'הצבעת ' + (selectedChoice === 'בעד' ? '👍 בעד' : '👎 נגד') + ' חבילת השדרוגים. תודה!';
+        document.getElementById('successCard').style.display = 'block';
+        loadProgress();
+      } else if (d.status === 'duplicate') {
+        showErr('⚠️ ' + (d.message || 'דירה זו כבר הצביעה') + '. לפניות: נציגות הבניין.');
+        btn.disabled = false; loading.style.display = 'none';
+      } else { throw new Error(); }
+    })
+    .catch(() => { showErr('שגיאה בשליחה — נסה שוב'); btn.disabled = false; loading.style.display = 'none'; });
+});
+
+function loadProgress(){
+  fetch(SCRIPT_URL + '?action=formStats&form=' + encodeURIComponent(FORM_KEY))
+    .then(r => r.json())
+    .then(data => {
+      const rows = data.rows || [];
+      // הצבעה אחת לדירה — מפה: דירה → בעד/נגד
+      const aptMap = {};
+      rows.forEach(r => { const n = parseInt(r.apt); if (!isNaN(n)) aptMap[n] = String(r.choice || ''); });
+      const voted = Object.keys(aptMap).map(Number);
+      const yes = voted.filter(a => aptMap[a] === 'בעד').length;
+      const no  = voted.filter(a => aptMap[a] === 'נגד').length;
+      const pct = Math.round(voted.length / TOTAL * 100);
+      document.getElementById('progLabel').textContent = voted.length + ' / ' + TOTAL + ' דירות הצביעו (' + pct + '%)';
+      document.getElementById('progFill').style.width = pct + '%';
+      document.getElementById('cntYes').textContent = yes;
+      document.getElementById('cntNo').textContent = no;
+      const grid = document.getElementById('aptGrid'); grid.innerHTML = '';
+      for (let i = 1; i <= TOTAL; i++) {
+        const c = document.createElement('div');
+        c.className = 'apt-cell ' + (aptMap[i] === 'בעד' ? 'apt-yes' : aptMap[i] === 'נגד' ? 'apt-no' : 'apt-off');
+        c.textContent = i; grid.appendChild(c);
+      }
+    })
+    .catch(() => { document.getElementById('progLabel').textContent = ''; });
+}
+loadProgress();
+</script>
+</body>
+</html>
