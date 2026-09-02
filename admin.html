@@ -29,9 +29,10 @@
   .dl-close { background:#c0392b; color:#fff; }
   .dl-open { background:#fff; color:#8a5a00; border:1.5px solid #e0c088; }
   .dl-msg { font-size:13px; margin-top:10px; font-weight:700; display:none; }
-  table { width:100%; border-collapse:collapse; font-size:13px; }
+  .tbl-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; margin:-4px; padding:4px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; min-width:520px; }
   th { text-align:right; padding:9px 10px; border-bottom:2px solid #333; font-weight:700; background:#f5f5f5; white-space:nowrap; }
-  td { padding:8px 10px; border-bottom:1px solid #eee; vertical-align:middle; }
+  td { padding:8px 10px; border-bottom:1px solid #eee; vertical-align:middle; white-space:nowrap; }
   td img { height:42px; max-width:100px; }
   .loading, .err { text-align:center; padding:50px; color:#888; }
   .err { color:#c00; display:none; }
@@ -74,10 +75,12 @@
       <div class="stat"><div class="num" id="stNo" style="color:#c0392b">0</div><div class="lbl">👎 נגד</div></div>
     </div>
     <div class="card">
-      <table>
-        <thead><tr id="thead"></tr></thead>
-        <tbody id="tbody"></tbody>
-      </table>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr id="thead"></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
