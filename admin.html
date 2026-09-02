@@ -69,7 +69,7 @@
 
     <div class="stats-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
       <div class="stat"><div class="num" id="stTotal">0</div><div class="lbl">הצביעו</div></div>
-      <div class="stat"><div class="num" id="stApts">0</div><div class="lbl">דירות שונות</div></div>
+      <div class="stat"><div class="num" id="stPct" style="color:#0d6e52">0%</div><div class="lbl">בעד מכלל הבניין (52)</div></div>
       <div class="stat"><div class="num" id="stYes" style="color:#0d6e52">0</div><div class="lbl">👍 בעד</div></div>
       <div class="stat"><div class="num" id="stNo" style="color:#c0392b">0</div><div class="lbl">👎 נגד</div></div>
     </div>
@@ -184,9 +184,11 @@ function render(entries){
   document.getElementById('content').style.display='block';
   const apts = new Set(entries.map(e => parseInt(e.apt)).filter(n => !isNaN(n)));
   document.getElementById('stTotal').textContent = entries.length;
-  document.getElementById('stApts').textContent = apts.size;
-  document.getElementById('stYes').textContent = entries.filter(e => e.choice === 'בעד').length;
-  document.getElementById('stNo').textContent  = entries.filter(e => e.choice === 'נגד').length;
+  const yesCount = entries.filter(e => e.choice === 'בעד').length;
+  const noCount  = entries.filter(e => e.choice === 'נגד').length;
+  document.getElementById('stYes').textContent = yesCount;
+  document.getElementById('stNo').textContent  = noCount;
+  document.getElementById('stPct').textContent = Math.round(yesCount / 52 * 100) + '%';
   document.getElementById('countBadge').textContent = entries.length + ' רשומות';
 
   // עמודות: לפי המפתחות של הרשומה הראשונה, עם ts אחרון
