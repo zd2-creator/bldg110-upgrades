@@ -64,7 +64,14 @@
   input { width:100%; padding:11px 12px; border:1.5px solid #ccc; border-radius:8px; font-size:15px; font-family:inherit; direction:rtl; background:#fafafa; }
   input:focus { outline:none; border-color:#1D9E75; background:#fff; }
   input.invalid { border-color:#c0392b; }
+  select { width:100%; padding:11px 12px; border:1.5px solid #ccc; border-radius:8px; font-size:15px; font-family:inherit; direction:rtl; background:#fafafa; }
+  select:focus { outline:none; border-color:#1D9E75; background:#fff; }
+  select.invalid { border-color:#c0392b; }
   .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .declare { display:flex; gap:9px; align-items:flex-start; background:#f8f9fa; border:1px solid #e5e5e5; border-radius:9px; padding:12px 13px; margin:4px 0 14px; font-size:13px; color:#444; font-weight:400; line-height:1.5; cursor:pointer; }
+  .declare input { width:18px; height:18px; flex-shrink:0; margin-top:1px; accent-color:#1D9E75; cursor:pointer; }
+  .declare.invalid { border-color:#c0392b; background:#fdecea; }
+  .privacy { font-size:11.5px; color:#999; text-align:center; margin-top:12px; line-height:1.6; }
   .choice-cards { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
   .choice-card { border:2px solid #ddd; border-radius:10px; padding:16px 10px; text-align:center; cursor:pointer; transition:all .18s; background:#fff; }
   .choice-card .ic { font-size:28px; margin-bottom:6px; }
@@ -75,8 +82,6 @@
   .choice-card.sel .t { color:#0d6e52; }
   .choice-card.sel-no { border-color:#c0392b; background:#fdecea; }
   .choice-card.sel-no .t { color:#8e2b20; }
-  #sigCanvas { width:100%; height:110px; border:1.5px solid #ccc; border-radius:8px; touch-action:none; background:#fff; display:block; }
-  .sig-clear { font-size:12px; color:#888; background:none; border:1px solid #ddd; border-radius:6px; padding:4px 10px; margin-top:6px; cursor:pointer; }
   .btn { width:100%; padding:13px; background:#1D9E75; color:#fff; border:none; border-radius:10px; font-size:16px; font-weight:800; cursor:pointer; font-family:inherit; margin-top:4px; }
   .btn:disabled { background:#aaa; cursor:not-allowed; }
   .err { color:#c0392b; font-size:13px; margin-top:8px; display:none; }
@@ -232,21 +237,22 @@
     <div class="grid2">
       <div class="field">
         <label>מספר דירה <span class="req">*</span></label>
-        <input id="f_apt" inputmode="numeric" placeholder="12" />
+        <select id="f_apt"><option value="" disabled selected>בחר/י דירה</option></select>
       </div>
       <div class="field">
         <label>שם בעל הדירה <span class="req">*</span></label>
         <input id="f_name" placeholder="ישראל ישראלי" autocomplete="name" />
       </div>
     </div>
-    <div class="field">
-      <label>חתימה ידנית <span class="req">*</span></label>
-      <canvas id="sigCanvas"></canvas>
-      <button class="sig-clear" onclick="clearSig()">נקה חתימה</button>
-    </div>
+
+    <label class="declare">
+      <input type="checkbox" id="f_declare" />
+      <span>אני מצהיר/ה כי אני בעל/ת הדירה או מוסמך/ת להצביע בשמה, וההצבעה נעשית על דעתי.</span>
+    </label>
 
     <div id="formErr" class="err"></div>
     <button class="btn" id="submitBtn">שליחת הצבעה ✓</button>
+    <p class="privacy">🔒 נאספים רק מספר דירה, שם והבחירה — לצורך תיעוד ההצבעה בלבד. הפרטים נשמרים אצל נציגות הבניין ולא מועברים לגורם אחר.</p>
     <div class="loading" id="loading">שולח… אנא המתן</div>
   </div>
 
@@ -278,7 +284,7 @@
 // ═══ הגדרות ═══
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxn7f1-PycwsK8oh9uElLX_L6pe_bCwP7cg64k5YM97ybZ0GTssn3p5ziJX-vb47yVW/exec';
 const FORM_KEY   = 'שדרוגים';
-const FIELDS     = ['apt','name','choice','sig'];
+const FIELDS     = ['apt','name','choice'];
 const TOTAL      = 52;
 const DEADLINE   = new Date('2026-09-05T23:59:59+03:00'); // שבת 5.9.26, שעון ישראל
 // ══════════════
@@ -301,6 +307,16 @@ function updateDeadline() {
 updateDeadline();
 setInterval(updateDeadline, 30000);
 
+// מילוי תפריט הדירות 1..52 — מונע קלט שגוי או דירה לא קיימת
+(function(){
+  const sel = document.getElementById('f_apt');
+  for (let i = 1; i <= TOTAL; i++) {
+    const o = document.createElement('option');
+    o.value = String(i); o.textContent = 'דירה ' + i;
+    sel.appendChild(o);
+  }
+})();
+
 let selectedChoice = null;
 function selectChoice(v, el) {
   selectedChoice = v;
@@ -308,29 +324,6 @@ function selectChoice(v, el) {
   el.classList.add(v === 'נגד' ? 'sel-no' : 'sel');
 }
 
-// ── חתימה ──
-const canvas = document.getElementById('sigCanvas');
-let hasSig = false;
-if (canvas) {
-  const ctx = canvas.getContext('2d');
-  let drawing = false;
-  function resize() {
-    const dpr = window.devicePixelRatio || 1, r = canvas.getBoundingClientRect();
-    if (canvas.width === r.width*dpr && canvas.height === r.height*dpr) return;
-    canvas.width = r.width*dpr; canvas.height = r.height*dpr;
-    ctx.scale(dpr,dpr); ctx.strokeStyle='#111'; ctx.lineWidth=2; ctx.lineCap='round'; ctx.lineJoin='round';
-  }
-  setTimeout(resize, 100); window.addEventListener('resize', resize);
-  function pos(e){ const r=canvas.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return {x:t.clientX-r.left, y:t.clientY-r.top}; }
-  function down(e){ e.preventDefault(); drawing=true; const p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); }
-  function move(e){ if(!drawing)return; e.preventDefault(); const p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); hasSig=true; }
-  function up(){ drawing=false; }
-  canvas.addEventListener('mousedown',down); canvas.addEventListener('mousemove',move);
-  canvas.addEventListener('mouseup',up); canvas.addEventListener('mouseleave',up);
-  canvas.addEventListener('touchstart',down,{passive:false}); canvas.addEventListener('touchmove',move,{passive:false}); canvas.addEventListener('touchend',up);
-  window.clearSig = function(){ ctx.clearRect(0,0,canvas.width,canvas.height); hasSig=false; };
-}
-function sigDataURL(){ const s=document.createElement('canvas'); s.width=300; s.height=90; s.getContext('2d').drawImage(canvas,0,0,300,90); return s.toDataURL('image/png'); }
 
 function showErr(msg){ const e=document.getElementById('formErr'); e.textContent=msg; e.classList.add('show'); }
 
@@ -338,7 +331,6 @@ document.getElementById('submitBtn').addEventListener('click', function(){
   if (new Date() > DEADLINE) { updateDeadline(); return; }
   const values = {};
   for (const f of FIELDS) {
-    if (f === 'sig') continue;
     if (f === 'choice') { values[f] = selectedChoice; continue; }
     const el = document.getElementById('f_' + f);
     values[f] = el ? el.value.trim() : '';
@@ -349,12 +341,13 @@ document.getElementById('submitBtn').addEventListener('click', function(){
     if (!values[f]) { showErr('יש למלא את כל השדות המסומנים ב-*'); if(el) el.classList.add('invalid'); return; }
     if (el) el.classList.remove('invalid');
   }
-  if (!hasSig) { showErr('יש לחתום בשדה החתימה'); return; }
+  const dec = document.getElementById('f_declare');
+  if (!dec.checked) { showErr('יש לאשר את ההצהרה'); dec.closest('.declare').classList.add('invalid'); return; }
+  dec.closest('.declare').classList.remove('invalid');
   document.getElementById('formErr').classList.remove('show');
 
   const btn = document.getElementById('submitBtn'), loading = document.getElementById('loading');
   btn.disabled = true; loading.style.display = 'block';
-  values.sig = sigDataURL();
 
   fetch(SCRIPT_URL, { method:'POST', headers:{'Content-Type':'text/plain'},
     body: JSON.stringify({ action:'formSubmit', form:FORM_KEY, fields:FIELDS, values:values }) })
