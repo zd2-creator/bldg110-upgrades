@@ -89,7 +89,7 @@
   .err { color:#c0392b; font-size:13px; margin-top:8px; display:none; }
   .err.show { display:block; }
   .loading { display:none; text-align:center; padding:10px; color:#666; font-size:14px; }
-  .success { display:none; text-align:center; padding:34px 18px; background:linear-gradient(135deg,#e0f5ee,#f0faf6) !important; border:2px solid #1D9E75 !important; animation:popIn .5s cubic-bezier(.175,.885,.32,1.275); }
+  .success { text-align:center; padding:34px 18px; background:linear-gradient(135deg,#e0f5ee,#f0faf6) !important; border:2px solid #1D9E75 !important; animation:popIn .5s cubic-bezier(.175,.885,.32,1.275); }
   .success .big { font-size:64px; }
   .success h2 { font-size:24px; color:#0d6e52; margin:8px 0 8px; font-weight:800; }
   .success p { font-size:16px; color:#0d6e52; font-weight:700; }
@@ -159,13 +159,6 @@
   <div class="hero">
     <h1>🏢 הצבעת דיירים — חבילת השדרוגים</h1>
     <p>בניין 110 · עד 3,000 ₪ לדירה · עד 6 תשלומים</p>
-  </div>
-
-  <div class="card success" id="successCard">
-    <div class="big">✅</div>
-    <h2>ההצבעה שלך נקלטה!</h2>
-    <p id="successMsg"></p>
-    <p class="succ-sub">תודה על ההשתתפות 🙏 אפשר לסגור את הדף.</p>
   </div>
 
   <div class="deadline" id="deadlineBox">
@@ -454,14 +447,19 @@ document.getElementById('submitBtn').addEventListener('click', function(){
 
   function onSuccess(){
     clearTimeout(t1); clearTimeout(t2);
-    document.getElementById('formCard').style.display = 'none';
-    document.getElementById('msgCard').style.display = 'none';
-    document.getElementById('successMsg').textContent = 'דירה ' + apt + ' — הצבעת ' + (choice === 'בעד' ? '👍 בעד' : '👎 נגד') + ' חבילת השדרוגים';
-    const sc = document.getElementById('successCard');
-    sc.style.display = 'block';
-    setTimeout(() => sc.scrollIntoView({ behavior:'smooth', block:'center' }), 100);
+    // הקובייה של הטופס מתחלפת במקומה בהודעת ההצלחה
+    const fc = document.getElementById('formCard');
+    fc.className = 'card success';
+    fc.style.display = 'block';
+    fc.innerHTML =
+      '<div class="big">✅</div>' +
+      '<h2>ההצבעה שלך נקלטה!</h2>' +
+      '<p>דירה ' + esc(apt) + ' — הצבעת ' + (choice === 'בעד' ? '👍 בעד' : '👎 נגד') + ' חבילת השדרוגים</p>' +
+      '<p class="succ-sub">תודה על ההשתתפות 🙏 אפשר לסגור את הדף.</p>';
+    setTimeout(() => fc.scrollIntoView({ behavior:'smooth', block:'center' }), 100);
     loadProgress();
   }
+  function esc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   // אם התשובה מהשרת אבדה — בודקים במפה אם ההצבעה בכל זאת נקלטה
   function verifyViaStats(){
     sendText.textContent = 'מוודא שההצבעה נקלטה…'; sendSub.textContent = '';
