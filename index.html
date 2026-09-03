@@ -89,9 +89,15 @@
   .err { color:#c0392b; font-size:13px; margin-top:8px; display:none; }
   .err.show { display:block; }
   .loading { display:none; text-align:center; padding:10px; color:#666; font-size:14px; }
-  .success { display:none; text-align:center; padding:36px 18px; }
-  .success .big { font-size:52px; }
-  .success h2 { font-size:20px; color:#1D9E75; margin:8px 0 6px; }
+  .success { display:none; text-align:center; padding:34px 18px; background:linear-gradient(135deg,#e0f5ee,#f0faf6) !important; border:2px solid #1D9E75 !important; animation:popIn .5s cubic-bezier(.175,.885,.32,1.275); }
+  .success .big { font-size:64px; }
+  .success h2 { font-size:24px; color:#0d6e52; margin:8px 0 8px; font-weight:800; }
+  .success p { font-size:16px; color:#0d6e52; font-weight:700; }
+  .success .succ-sub { font-size:13.5px; color:#555; font-weight:400; margin-top:10px; }
+  .sending { display:none; text-align:center; padding:14px 10px 6px; }
+  .sending .mini-spin { display:inline-block; width:20px; height:20px; border:3px solid #e0f5ee; border-top-color:#1D9E75; border-radius:50%; animation:spin .8s linear infinite; vertical-align:-5px; margin-inline-end:8px; }
+  .sending .st { font-size:14.5px; font-weight:700; color:#333; }
+  .sending small { display:block; color:#888; font-size:12px; margin-top:6px; line-height:1.5; }
 
   /* דדליין */
   .deadline { background:#fff8ec; border:1.5px solid #f5d9a8; border-radius:12px; padding:12px 16px; text-align:center; font-size:14px; font-weight:700; color:#8a5a00; margin-bottom:16px; }
@@ -153,6 +159,13 @@
   <div class="hero">
     <h1>🏢 הצבעת דיירים — חבילת השדרוגים</h1>
     <p>בניין 110 · עד 3,000 ₪ לדירה · עד 6 תשלומים</p>
+  </div>
+
+  <div class="card success" id="successCard">
+    <div class="big">✅</div>
+    <h2>ההצבעה שלך נקלטה!</h2>
+    <p id="successMsg"></p>
+    <p class="succ-sub">תודה על ההשתתפות 🙏 אפשר לסגור את הדף.</p>
   </div>
 
   <div class="deadline" id="deadlineBox">
@@ -285,14 +298,9 @@
 
     <div id="formErr" class="err"></div>
     <button class="btn" id="submitBtn">שליחת הצבעה ✓</button>
-    <div class="loading" id="loading">שולח… אנא המתן</div>
+    <div class="sending" id="loading"><span class="mini-spin"></span><span class="st" id="sendText">שולח את ההצבעה…</span><small id="sendSub">אנא המתן — לא לסגור את הדף</small></div>
   </div>
 
-  <div class="card success" id="successCard">
-    <div class="big">✅</div>
-    <h2>הצבעתך נרשמה!</h2>
-    <p id="successMsg"></p>
-  </div>
 
   <!-- התקדמות -->
   <div class="prog" id="progCard">
@@ -435,26 +443,51 @@ document.getElementById('submitBtn').addEventListener('click', function(){
 
   const btn = document.getElementById('submitBtn'), loading = document.getElementById('loading');
   btn.disabled = true; loading.style.display = 'block';
+  const apt = values.apt, choice = selectedChoice;
 
-  fetch(SCRIPT_URL, { method:'POST', headers:{'Content-Type':'text/plain'},
+  // הודעות לפי משך ההמתנה — השרת של גוגל לפעמים עמוס (במיוחד כשכולם מצביעים יחד)
+  const sendText = document.getElementById('sendText'), sendSub = document.getElementById('sendSub');
+  sendText.textContent = 'שולח את ההצבעה…'; sendSub.textContent = 'אנא המתן — לא לסגור את הדף';
+  const t1 = setTimeout(() => { sendText.textContent = 'עדיין שולח… השרת עמוס כרגע ⏳'; sendSub.textContent = 'זה קורה כשהרבה דיירים מצביעים יחד. עוד כמה שניות'; }, 6000);
+  const t2 = setTimeout(() => { sendText.textContent = 'לוקח יותר מהרגיל — אבל ההצבעה בדרך 🙏'; sendSub.textContent = 'אנא אל תסגור את הדף ואל תשלח שוב'; }, 18000);
+  function doneSending(){ clearTimeout(t1); clearTimeout(t2); btn.disabled = false; loading.style.display = 'none'; }
+
+  function onSuccess(){
+    clearTimeout(t1); clearTimeout(t2);
+    document.getElementById('formCard').style.display = 'none';
+    document.getElementById('msgCard').style.display = 'none';
+    document.getElementById('successMsg').textContent = 'דירה ' + apt + ' — הצבעת ' + (choice === 'בעד' ? '👍 בעד' : '👎 נגד') + ' חבילת השדרוגים';
+    const sc = document.getElementById('successCard');
+    sc.style.display = 'block';
+    setTimeout(() => sc.scrollIntoView({ behavior:'smooth', block:'center' }), 100);
+    loadProgress();
+  }
+  // אם התשובה מהשרת אבדה — בודקים במפה אם ההצבעה בכל זאת נקלטה
+  function verifyViaStats(){
+    sendText.textContent = 'מוודא שההצבעה נקלטה…'; sendSub.textContent = '';
+    fetch(SCRIPT_URL + '?action=formStats&form=' + encodeURIComponent(FORM_KEY) + '&t=' + Date.now())
+      .then(r => r.json())
+      .then(data => {
+        const found = (data.rows || []).some(r => String(r.apt) === String(apt));
+        if (found) onSuccess();
+        else { doneSending(); showErr('השרת לא הגיב בזמן — לא נראה שההצבעה נקלטה. נסה/י שוב בעוד רגע.'); }
+      })
+      .catch(() => { doneSending(); showErr('אין חיבור לשרת כרגע — נסה/י שוב בעוד רגע.'); });
+  }
+
+  const ctrl = new AbortController();
+  const killer = setTimeout(() => ctrl.abort(), 45000);
+  fetch(SCRIPT_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, signal: ctrl.signal,
     body: JSON.stringify({ action:'formSubmit', form:FORM_KEY, fields:FIELDS, values:values }) })
     .then(r => r.json())
     .then(d => {
-      if (d.status === 'ok') {
-        document.getElementById('formCard').style.display = 'none';
-        document.getElementById('msgCard').style.display = 'none';
-        document.getElementById('successMsg').textContent = 'הצבעת ' + (selectedChoice === 'בעד' ? '👍 בעד' : '👎 נגד') + ' חבילת השדרוגים. תודה!';
-        document.getElementById('successCard').style.display = 'block';
-        loadProgress();
-      } else if (d.status === 'closed') {
-        updateDeadline();
-        btn.disabled = false; loading.style.display = 'none';
-      } else if (d.status === 'duplicate') {
-        showErr('⚠️ ' + (d.message || 'דירה זו כבר הצביעה') + '. לפניות: נציגות הבניין.');
-        btn.disabled = false; loading.style.display = 'none';
-      } else { throw new Error(); }
+      clearTimeout(killer);
+      if (d.status === 'ok') onSuccess();
+      else if (d.status === 'closed') { doneSending(); updateDeadline(); }
+      else if (d.status === 'duplicate') { doneSending(); showErr('⚠️ ' + (d.message || 'דירה זו כבר הצביעה') + '. לפניות: נציגות הבניין.'); }
+      else throw new Error();
     })
-    .catch(() => { showErr('שגיאה בשליחה — נסה שוב'); btn.disabled = false; loading.style.display = 'none'; });
+    .catch(() => { clearTimeout(killer); verifyViaStats(); });
 });
 
 // ── חגיגת רוב 67% ──
