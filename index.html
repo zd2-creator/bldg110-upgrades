@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>הצבעת דיירים — חבילת השדרוגים · בניין 110</title>
+<link rel="icon" type="image/png" href="favicon.png">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://zd2-creator.github.io/bldg110-upgrades/">
 <meta property="og:site_name" content="ועד בית · בניין 110">
@@ -158,6 +159,11 @@
 body.viewmode{padding-top:36px}
 .bgate-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:12px 22px;border-radius:10px;font-size:14px;font-weight:700;z-index:99998;font-family:'Heebo',Arial,sans-serif;direction:rtl;box-shadow:0 8px 30px rgba(0,0,0,.3);animation:bgtIn .3s ease}
 @keyframes bgtIn{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+  /* ── לוגו הבניין ── */
+  .brandlogo { display:block; margin:0 auto 12px; height:132px; width:auto; }
+  @media (max-width:420px) { .brandlogo { height:112px; } }
+  @media print { .brandlogo { height:96px; margin-bottom:10px; } }
 </style>
 <style id="gateCss">
 .bgate{position:fixed;inset:0;background:linear-gradient(180deg,#eef7f3,#f5f5f5);display:flex;align-items:center;justify-content:center;z-index:99999;padding:20px;font-family:'Heebo',Arial,sans-serif;direction:rtl}
@@ -276,8 +282,9 @@ body.viewmode{padding-top:36px}
 <body>
 <div class="page">
   <div class="hero">
-    <h1>🏢 הצבעת דיירים — חבילת השדרוגים</h1>
-    <p>בניין 110 · עד 3,000 ₪ לדירה · עד 6 תשלומים</p>
+    <img class="brandlogo" src="logo.png" alt="יעל רום 6, ראשון לציון" width="322" height="396" />
+    <h1>הצבעת דיירים — חבילת השדרוגים</h1>
+    <p>עד 3,000 ₪ לדירה · עד 6 תשלומים</p>
   </div>
 
   <div class="deadline" id="deadlineBox">
