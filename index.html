@@ -615,31 +615,40 @@ document.getElementById('submitBtn').addEventListener('click', function(){
   }
   function esc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   // אם התשובה מהשרת אבדה — בודקים במפה אם ההצבעה בכל זאת נקלטה
-  function verifyViaStats(){
-    sendText.textContent = 'מוודא שההצבעה נקלטה…'; sendSub.textContent = '';
+  // אימות מול המפה — עד 3 ניסיונות במרווח 6 שניות (לשרת יש זיכרון של 15 שניות על הסטטיסטיקה)
+  function verifyViaStats(n){
+    if (!apt) { doneSending(); showErr('השרת לא הגיב — נסה/י שוב בעוד רגע.'); return; }
+    sendText.textContent = 'מוודא שההצבעה נקלטה…' + (n > 1 ? ' (' + n + '/3)' : ''); sendSub.textContent = 'ההצבעה כנראה נקלטה — רק מאמתים מול השרת';
+    const again = () => { if (n < 3) setTimeout(() => verifyViaStats(n + 1), 6000); else { doneSending(); showErr('השרת לא הגיב בזמן — לא נראה שההצבעה נקלטה. נסה/י שוב בעוד רגע.'); } };
     fetch(SCRIPT_URL + '?action=formStats&form=' + encodeURIComponent(FORM_KEY) + '&t=' + Date.now())
       .then(r => r.json())
-      .then(data => {
-        const found = (data.rows || []).some(r => String(r.apt) === String(apt));
-        if (found) onSuccess();
-        else { doneSending(); showErr('השרת לא הגיב בזמן — לא נראה שההצבעה נקלטה. נסה/י שוב בעוד רגע.'); }
-      })
-      .catch(() => { doneSending(); showErr('אין חיבור לשרת כרגע — נסה/י שוב בעוד רגע.'); });
+      .then(data => { if ((data.rows || []).some(r => String(r.apt) === String(apt))) onSuccess(); else again(); })
+      .catch(again);
   }
 
-  const ctrl = new AbortController();
-  const killer = setTimeout(() => ctrl.abort(), 45000);
-  fetch(SCRIPT_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, signal: ctrl.signal,
-    body: JSON.stringify({ action:'formSubmit', form:FORM_KEY, fields:FIELDS, values:values }) })
-    .then(r => r.json())
-    .then(d => {
-      clearTimeout(killer);
-      if (d.status === 'ok') onSuccess();
-      else if (d.status === 'closed') { doneSending(); updateDeadline(); }
-      else if (d.status === 'duplicate') { doneSending(); showErr('⚠️ ' + (d.message || 'דירה זו כבר הצביעה') + '. לפניות: נציגות הבניין.'); }
-      else throw new Error();
-    })
-    .catch(() => { clearTimeout(killer); verifyViaStats(); });
+  // שליחה עם ניסיון חוזר: גוגל מחזיר לפעמים דף שגיאה ב-redirect גם כשהרישום נקלט בגיליון.
+  // duplicate בניסיון השני = הניסיון הראשון נקלט והתשובה אבדה בדרך → הצלחה.
+  function sendVote(attempt){
+    const ctrl = new AbortController();
+    const killer = setTimeout(() => ctrl.abort(), 30000);
+    fetch(SCRIPT_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, signal: ctrl.signal,
+      body: JSON.stringify({ action:'formSubmit', form:FORM_KEY, fields:FIELDS, values:values }) })
+      .then(r => r.json())
+      .then(d => {
+        clearTimeout(killer);
+        if (d.status === 'ok') onSuccess();
+        else if (d.status === 'duplicate' && attempt > 1) onSuccess();
+        else if (d.status === 'closed') { doneSending(); updateDeadline(); }
+        else if (d.status === 'duplicate') { doneSending(); showErr('⚠️ ' + (d.message || 'דירה זו כבר הצביעה') + '. לפניות: נציגות הבניין.'); }
+        else throw new Error();
+      })
+      .catch(() => {
+        clearTimeout(killer);
+        if (attempt < 2) { sendText.textContent = 'התשובה מהשרת התעכבה — מנסה שוב…'; sendSub.textContent = 'לא לסגור את הדף'; setTimeout(() => sendVote(attempt + 1), 2500); }
+        else verifyViaStats(1);
+      });
+  }
+  sendVote(1);
 });
 
 // ── חגיגת רוב 67% ──
