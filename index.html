@@ -628,6 +628,16 @@ document.getElementById('submitBtn').addEventListener('click', function(){
 
   // שליחה עם ניסיון חוזר: גוגל מחזיר לפעמים דף שגיאה ב-redirect גם כשהרישום נקלט בגיליון.
   // duplicate בניסיון השני = הניסיון הראשון נקלט והתשובה אבדה בדרך → הצלחה.
+  function confirmOwnVote(d){
+    fetch(SCRIPT_URL + '?action=formStats&form=' + encodeURIComponent(FORM_KEY) + '&t=' + Date.now())
+      .then(r => r.json())
+      .then(data => {
+        const mine = (data.rows || []).find(r => String(r.apt) === String(apt));
+        if (mine && (!choice || String(mine.choice || '') === String(choice))) onSuccess();
+        else { doneSending(); showErr('⚠️ ' + (d.message || 'דירה זו כבר נרשמה') + '. לפניות: נציגות הבניין.'); }
+      })
+      .catch(() => verifyViaStats(1));
+  }
   function sendVote(attempt){
     const ctrl = new AbortController();
     const killer = setTimeout(() => ctrl.abort(), 30000);
@@ -637,7 +647,9 @@ document.getElementById('submitBtn').addEventListener('click', function(){
       .then(d => {
         clearTimeout(killer);
         if (d.status === 'ok') onSuccess();
-        else if (d.status === 'duplicate' && attempt > 1) onSuccess();
+        // duplicate בניסיון חוזר: או שהניסיון הראשון נקלט, או שהדירה הצביעה קודם ועכשיו מנסה לשנות.
+        // מבדילים לפי המפה: אם הבחירה הרשומה היא זו שנשלחה עכשיו — הצלחה; אחרת — ההודעה הרגילה.
+        else if (d.status === 'duplicate' && attempt > 1) confirmOwnVote(d);
         else if (d.status === 'closed') { doneSending(); updateDeadline(); }
         else if (d.status === 'duplicate') { doneSending(); showErr('⚠️ ' + (d.message || 'דירה זו כבר הצביעה') + '. לפניות: נציגות הבניין.'); }
         else throw new Error();
