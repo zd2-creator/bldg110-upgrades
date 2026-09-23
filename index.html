@@ -494,17 +494,20 @@ function updateDeadline() {
     document.getElementById('formCard').style.display = '';
     document.getElementById('closedCard').style.display = 'none';
     document.getElementById('deadlineBox').style.display = 'none';
+    stopClosedPoll();
     return;
   }
   if (dl === 'closed' || now > dl) {
     document.getElementById('formCard').style.display = 'none';
     document.getElementById('deadlineBox').style.display = 'none';
     document.getElementById('closedCard').style.display = 'block';
+    startClosedPoll();
     return;
   }
   document.getElementById('deadlineBox').style.display = '';
   document.getElementById('formCard').style.display = '';
   document.getElementById('closedCard').style.display = 'none';
+  stopClosedPoll();
   const ms = dl - now;
   const d = Math.floor(ms / 86400000), h = Math.floor(ms % 86400000 / 3600000), m = Math.floor(ms % 3600000 / 60000);
   const dd = dl.getDate(), mm = dl.getMonth()+1, yy = String(dl.getFullYear()).slice(2);
@@ -515,6 +518,10 @@ function updateDeadline() {
   document.getElementById('countdown').textContent =
     'נותרו ' + (d > 0 ? d + ' ימים, ' : '') + h + ' שעות ו-' + pad2(m) + ' דקות';
 }
+// כשהטופס סגור: משיכה מהשרת פעם בדקה — פתיחה מחדש מהאדמין נראית בלי לרענן את הדף
+let closedPoll = null;
+function startClosedPoll(){ if (!closedPoll) closedPoll = setInterval(() => { if (typeof loadProgress === 'function') loadProgress(); }, 60000); }
+function stopClosedPoll(){ if (closedPoll) { clearInterval(closedPoll); closedPoll = null; } }
 updateDeadline();
 setInterval(updateDeadline, 30000);
 
@@ -737,7 +744,8 @@ function renderStats(data){
       // מועד הסגירה מגיע מהשרת — כך שהארכה/סגירה מהאדמין משפיעה מיד
       if (data.deadline === 'closed') { DEADLINE_OVERRIDE = 'closed'; }
       else if (data.deadline === 'open') { DEADLINE_OVERRIDE = 'open'; }
-      else if (data.deadline) { const d = new Date(data.deadline); if (!isNaN(d)) DEADLINE_OVERRIDE = d; }
+      else if (data.deadline) { const d = new Date(data.deadline); DEADLINE_OVERRIDE = isNaN(d) ? null : d; }
+      else DEADLINE_OVERRIDE = null;   // בלי מועד מהשרת = בלי דריסה (אחרת "סגור" ישן מהזיכרון נתקע)
       updateDeadline();
       const rows = data.rows || [];
       // הצבעה אחת לדירה — מפה: דירה → בעד/נגד
